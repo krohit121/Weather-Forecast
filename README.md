@@ -18,29 +18,29 @@ dataset: https://www.biz.uiowa.edu/faculty/jledolter/datamining/dataexercises.ht
 Data_Discription:
 
 Date: The date of observation (a date object).
-Location: The common name of the location of the weather station
-MinTemp: The minimum temperature in degrees centigrade
-MaxTemp: The maximum temperature in degrees centigrade
+Location: The common name of the location of the weather station.
+MinTemp: The minimum temperature in degrees centigrade.
+MaxTemp: The maximum temperature in degrees centigrade.
 Rainfall: The amount of rainfall recorded for the day in millimeters.
-Evaporation: Class A pan evaporation (in millimeters) during 24 h
-Sunshine: The number of hours of bright sunshine in the day
-WindGustDir: The direction of the strongest wind gust in the 24 h to midnight
-WindGustSpeed: The speed (in kilometers per hour) of the strongest wind gust in the 24 h to midnight
+Evaporation: Class A pan evaporation (in millimeters) during 24 h.
+Sunshine: The number of hours of bright sunshine in the day.
+WindGustDir: The direction of the strongest wind gust in the 24 h to midnight.
+WindGustSpeed: The speed (in kilometers per hour) of the strongest wind gust in the 24 h to midnight.
 WindDir9am: The direction of the wind gust at 9 a.m.
 WindDir3pm: The direction of the wind gust at 3 p.m.
 WindSpeed9am: Wind speed (in kilometers per hour) averaged over 10 min before 9 a.m.
 WindSpeed3pm: Wind speed (in kilometers per hour) averaged over 10 min before 3 p.m.
-Humidity9am: Relative humidity (in percent) at 9 am
-Humidity3pm: Relative humidity (in percent) at 3 pm
+Humidity9am: Relative humidity (in percent) at 9 am.
+Humidity3pm: Relative humidity (in percent) at 3 pm.
 Pressure9am: Atmospheric pressure (hpa) reduced to mean sea level at 9 a.m.
 Pressure3pm: Atmospheric pressure (hpa) reduced to mean sea level at 3 p.m.
-Cloud9am: Fraction of sky obscured by cloud at 9 a.m. This is measured in ”oktas,” which are a unit of eighths. It records how many eighths of the sky are obscured by cloud. A 0 measure indicates completely clear sky, while an 8 indicates that it is completely overcast
-Cloud3pm: Fraction of sky obscured by cloud at 3 p.m; see Cloud9am for a description of the values
+Cloud9am: Fraction of sky obscured by cloud at 9 a.m. This is measured in ”oktas,” which are a unit of eighths. It records how many eighths of the sky are obscured by cloud. A 0 measure indicates completely clear sky, while an 8 indicates that it is completely overcast.
+Cloud3pm: Fraction of sky obscured by cloud at 3 p.m; see Cloud9am for a description of the values.
 Temp9am: Temperature (degrees C) at 9 a.m.
 Temp3pm: Temperature (degrees C) at 3 p.m.
-RainToday: Integer 1 if precipitation (in millimeters) in the 24 h to 9 a.m. exceeds 1 mm, otherwise 0
-RISK_MM: The continuous target variable; the amount of rain recorded during the next day
-RainTomorrow: The binary target variable whether it rains or not during the next day
+RainToday: Integer 1 if precipitation (in millimeters) in the 24 h to 9 a.m. exceeds 1 mm, otherwise 0.
+RISK_MM: The continuous target variable; the amount of rain recorded during the next day.
+RainTomorrow: The binary target variable whether it rains or not during the next day.
 
 
 
