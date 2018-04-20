@@ -1,0 +1,126 @@
+#Libraries
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(caret))
+suppressPackageStartupMessages(library(gmodels))
+suppressPackageStartupMessages(library(lattice))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(gridExtra))
+suppressPackageStartupMessages(library(ROCR))
+suppressPackageStartupMessages(library(corrplot))
+
+#1.0 DataAnalysis
+weather_data <- read.csv(file.choose()) 
+header = TRUE
+kable(head(weather_data))
+(n <- nrow(weather_data))
+c(as.character(weather_data$Date[1]), as.character(weather_data$Date[n]))
+str(weather_data)
+
+#1.1RISK_MM relation with the RainTomorrow variable
+all.equal(weather_data$RISK_MM > 1, weather_data$RainTomorrow == "Yes")
+
+#1.2 RISK_MM, RainFall and RainToday out, and determine a new dataset
+weather_data2 <- subset(weather_data, select = -c(Date, Location, RISK_MM, Rainfall, RainToday))
+colnames(weather_data2)
+
+#1.3 Look at the NA’s counts associated to WindDir9am. If WindDir9am were a not significative predictor for RainTomorrow, we could take such data column out and increased the complete cases count.
+weather_data3 <- weather_data2[complete.cases(weather_data2),]
+
+#1.4Being WindDir9am not a candidate predictor and having got more than 30 NA’s values, we decide to take it out. As a consequence, we have increased the number of NA-free records from 328 to 352. Same for WindDir3pm.
+weather_data4 <- subset(weather_data2, select = -c(WindDir9am, WindDir3pm))
+weather_data5 <- weather_data4[complete.cases(weather_data4),]
+colnames(weather_data5)
+write.table(weather_data5, file="weather_data5.csv", sep=",", row.names=FALSE)
+
+#2.0 Intial_Forecast
+suppressPackageStartupMessages(library(caret))
+set.seed(1023)
+weather_data5 <- read.csv("weather_data5.csv", header = TRUE, sep = ",", stringsAsFactors = TRUE)
+colnames(weather_data5)
+
+#2.1 split the original dataset in a training dataset (70% of original data) and a testing dataset (30% remaining)
+train_rec <- createDataPartition(weather_data5$RainTomorrow, p = 0.7, list = FALSE)
+training <- weather_data5[train_rec,]
+testing <- weather_data5[-train_rec,]
+
+#check the balance of RainTomorrow Yes/No fractions in the training and testing datasets
+sum(training["RainTomorrow"] == "Yes")/sum(training["RainTomorrow"] == "No")
+sum(testing["RainTomorrow"] == "Yes")/sum(testing["RainTomorrow"] == "No")
+
+#2.2 9AM Forecast Model(we herein compare two models for 9AM prediction)
+#(For all models, we are going to take advantage of a train control directive made available by the caret package which prescribes repeated k-flod cross-validation)
+trControl <- trainControl(method = "repeatedcv",  repeats = 5, number = 10, verboseIter = FALSE)
+
+predictors_9am_c1 <- c("Cloud9am",  "Humidity9am", "Pressure9am", "Temp9am")
+formula_9am_c1 <- as.formula(paste("RainTomorrow", paste(predictors_9am_c1, collapse="+"), sep="~"))
+mod9am_c1_fit <- train(formula_9am_c1,  data=training, method="glm", 
+                       family="binomial", trControl = trControl, metric = 'Accuracy')
+mod9am_c1_fit$results$Accuracy #(The resulting accuracy shown above is the one determined by the repeated k-fold cross validation as above explained. The obtained value is not that bad considering the use of just 9AM available data.)
+(summary_rep <- summary(mod9am_c1_fit$finalModel))
+
+#(model for 9AM predictions purpose and we go on by calculating accuracy with the test set.)
+mod9am_pred <- predict(mod9am_c1_fit, testing)
+confusionMatrix(mod9am_pred, testing[,"RainTomorrow"])
+
+#2.3 3Pm Forecast Model
+predictors_3pm_c1 <- c("Cloud3pm", "Humidity3pm", "Pressure3pm", "Temp3pm")
+formula_3pm_c1 <- as.formula(paste("RainTomorrow", paste(predictors_3pm_c1, collapse="+"), sep="~"))
+mod3pm_c1_fit <- train(formula_3pm_c1,  data = training, method = "glm", family = "binomial",
+                       trControl = trControl, metric = 'Accuracy')
+mod3pm_c1_fit$results$Accuracy
+(summary_rep <- summary(mod3pm_c1_fit$finalModel))
+mod3pm_pred <- predict(mod3pm_c1_fit, testing)
+confusionMatrix(mod3pm_pred, testing[,"RainTomorrow"])
+
+#3.0 Additional models in order to predict further variables such as tomorrow’s Rainfall, Humidity3pm, Sunshine variables
+weather_data6 <- subset(weather_data, select = -c(Date, Location, RISK_MM, RainToday, WindDir9am, WindDir3pm))
+weather_data6$RainfallTomorrow <- c(weather_data6$Rainfall[2:nrow(weather_data6)], NA)
+weather_data6$Humidity3pmTomorrow <- c(weather_data6$Humidity3pm[2:nrow(weather_data6)], NA)
+weather_data6$WindGustSpeedTomorrow <- c(weather_data6$WindGustSpeed[2:nrow(weather_data6)], NA)
+weather_data6$SunshineTomorrow <- c(weather_data6$Sunshine[2:nrow(weather_data6)], NA)
+weather_data6$MinTempTomorrow <- c(weather_data6$MinTemp[2:nrow(weather_data6)], NA)
+weather_data6$MaxTempTomorrow <- c(weather_data6$MaxTemp[2:nrow(weather_data6)], NA)
+
+weather_data7 = weather_data6[complete.cases(weather_data6),]
+head(weather_data7)
+
+hr_idx = which(weather_data7$RainfallTomorrow > 15)
+(train_hr <- hr_idx[hr_idx %in% train_rec])
+(test_hr <- hr_idx[!(hr_idx %in% train_rec)])
+
+#Tomorrow’s Rainfall Prediction Model
+weather_data8 = weather_data7[weather_data7$RainfallTomorrow > 1,]
+rf_fit <- lm(RainfallTomorrow ~  MaxTemp + Sunshine + WindGustSpeed - 1, data = weather_data8)
+summary(rf_fit)
+lm(formula = RainfallTomorrow ~ MaxTemp + Sunshine + WindGustSpeed - 
+       1, data = weather_data8)
+#Significance Plot of Rainfall Prediction
+lm_pred <- predict(rf_fit, weather_data8)
+plot(x = seq_along(weather_data8$RainfallTomorrow), y = weather_data8$RainfallTomorrow, type='p', xlab = "observations", ylab = "RainfallTomorrow")
+legend("topright", c("actual", "predicted"), fill = c("black", "red"))
+points(x = seq_along(weather_data8$RainfallTomorrow), y = lm_pred, col='red')
+
+#Tomorrow’s Sunshine Prediction Model
+sun_fit <- lm(SunshineTomorrow ~ Sunshine*Humidity3pm + Cloud3pm + Evaporation + I(Evaporation^2) + WindGustSpeed - 1, data = weather_data7)
+summary(sun_fit)
+lm(formula = SunshineTomorrow ~ Sunshine * Humidity3pm + Cloud3pm + 
+Evaporation + I(Evaporation^2) + WindGustSpeed - 1, data = weather_data7)
+
+#Significance Plot of Sunshine Prediction
+lm_pred <- predict(sun_fit, weather_data7)
+plot(x = seq_along(weather_data7$SunshineTomorrow), y = weather_data7$SunshineTomorrow, type='p', xlab = "observations", ylab = "SunshineTomorrow")
+legend("topright", c("actual", "predicted"), fill = c("black", "red"))
+points(x = seq_along(weather_data7$SunshineTomorrow), y = lm_pred, col='red')
+
+#Tomorrow’s Humidity 3pm Prediction Model
+h3pm_fit <- lm(Humidity3pmTomorrow ~ Humidity3pm + Sunshine, data = weather_data7)
+summary(h3pm_fit)
+lm(formula = Humidity3pmTomorrow ~ Humidity3pm + Sunshine, data = weather_data7)
+
+#Significance Plot of Humdity Prediction
+lm_pred <- predict(h3pm_fit, weather_data7)
+plot(x = seq_along(weather_data7$Humidity3pmTomorrow), y = weather_data7$Humidity3pmTomorrow, type='p', xlab = "observations", ylab = "Humidity3pmTomorrow")
+legend("topright", c("actual", "predicted"), fill = c("black", "red"))
+points(x = seq_along(weather_data7$Humidity3pmTomorrow), y = lm_pred, col='red')
+
+  
